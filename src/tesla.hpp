@@ -1,3 +1,5 @@
+#include <math.h>
+
 #define MAPVALUE(data, inmin, inmax, outmin, outmax) (data-inmin) * (outmax-outmin) / (inmax-inmin) + outmin;
 
 // midiToTesla:
@@ -10,7 +12,7 @@ midiToTesla(uint8_t noteNumber, uint8_t velocity,
         int *freq_out, int *duty_out)
 {
     const float exp = (noteNumber-69)/12.f;
-    const int freq = powf(2, exp)*440;
+    const int freq = pow(2, exp)*440;
 
     // Velocity to dutycycle
     const int dutyCycle = MAPVALUE(velocity, 0, 127, 0, maxDutyPromille);
