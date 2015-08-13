@@ -28,3 +28,81 @@ midiToTesla(uint8_t noteNumber, uint8_t velocity,
     }
     return valid;
 }
+
+class FrequencyAdjustablePWM {
+    typedef uint32_t Ticks;
+    typedef FrequencyAdjustablePWM Self;
+public:
+    FrequencyAdjustablePWM()
+        : counter(0)
+        , frequency(1)
+        , dutycyclePromille(0)
+        , onPeriod(0)
+        , period(0)
+    {}
+
+    // Config
+    // Returns this, to be chainable
+    Self &setTimebase(int d)
+    {
+        timebaseUs = d;
+        recalculate();
+        return *this;
+    }
+
+    Self &setFrequency(int d)
+    {
+        frequency = d;
+        recalculate();
+        return *this;
+    }
+    Self &setDutycycle(int d)
+    {
+        dutycyclePromille = d;
+        recalculate();
+        return *this;
+    }
+
+    // Drive PWM forward.
+    // Should be done in interrupt for guaranteed timings
+    void addTicks(Ticks ticks=1) {
+        counter += ticks;
+        printf("addTicks. counter=%d, onperiod=%d, period=%d\n", counter, onPeriod, period);
+        if (counter > period) {
+            counter = 0;
+            changeState(true);
+        }
+        if (!isOn()) {
+            changeState(false);
+        }
+    }
+
+    // Check current state
+    bool isOn() const {
+        return (dutycyclePromille && counter < onPeriod);
+    }
+
+private:
+    void recalculate() {
+        printf("config. frequency=%d, dutycycle=%d, timebase=%d\n",
+            frequency, dutycyclePromille, timebaseUs);
+        period = 10e6/(frequency*timebaseUs);
+        onPeriod = (period/1000)*dutycyclePromille;
+    }
+    void changeState(bool newState) {
+        // TODO: fire notification callback?
+        // Should keep track of current state to only notify on actual transitions
+        // Would have to make sure that the callback function is interrupt-safe...
+    }
+
+private:
+    // internal state
+    Ticks counter;
+    // configuration
+    int frequency;
+    int dutycyclePromille;
+    int timebaseUs;
+    // cached, derived from config
+    Ticks onPeriod;
+    Ticks period;
+};
