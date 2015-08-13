@@ -61,15 +61,50 @@ void setPwmFrequency(int pin, int divisor) {
   }
 }
 
-static const int8_t TESLA_PIN = 9;
+#include <MIDI.h>
+#include "tesla.hpp"
 
-void setup()
+static const int8_t TESLA_PIN = 9;
+static const int8_t SOFTERROR_PIN = 13;
+static const uint8_t MAX_DUTYCYCLE_PROMILLE = 20;
+static const uint8_t MAX_PULSE_MICROS = 200;
+midi::MidiInterface<HardwareSerial> midiInterface(Serial1);
+
+// FIXME: actually respect frequency changes
+static void
+updateTelsa(int8_t freq, int8_t dutyPromille)
 {
-    setPwmFrequency(TESLA_PIN, 256); // 122 Hz
+    analogWrite(TESLA_PIN, ((int)dutyPromille*255)/1000);
 }
 
-void loop()
+// MIDI callback
+static void 
+changeNote(byte channel, byte note, byte velocity)
 {
-    const int dutyCycle = 1;
-    analogWrite(TESLA_PIN, (dutyCycle*255)/100);
+    int freq = -1;
+    int duty = 0;
+    const bool valid = midiToTesla(note, velocity,
+        MAX_DUTYCYCLE_PROMILLE, MAX_PULSE_MICROS,
+        &freq, &duty);
+
+    digitalWrite(SOFTERROR_PIN, !valid);
+    updateTelsa(freq, duty);
+}
+
+void
+setup()
+{
+    setPwmFrequency(TESLA_PIN, 256); // 122 Hz
+    midiInterface.begin(1);
+    midiInterface.setHandleNoteOff(changeNote);
+    midiInterface.setHandleNoteOn(changeNote);
+    midiInterface.turnThruOff(); // so we can use Serial for debug
+    updateTelsa(100, 0); // default off
+}
+
+void
+loop()
+{
+    // everything else is callback-driven
+    midiInterface.read();
 }
