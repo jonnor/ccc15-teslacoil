@@ -66,9 +66,11 @@ void setPwmFrequency(int pin, int divisor) {
 
 static const int8_t TESLA_PIN = 9;
 static const int8_t SOFTERROR_PIN = 13;
-static const uint8_t MAX_DUTYCYCLE_PROMILLE = 20;
+static const uint8_t MAX_DUTYCYCLE_PROMILLE = 10;
 static const uint8_t MAX_PULSE_MICROS = 200;
-midi::MidiInterface<HardwareSerial> midiInterface(Serial1);
+static const int SERIAL_RATE = 9600;
+//midi::MidiInterface<HardwareSerial> midiInterface(Serial);
+MIDI_CREATE_DEFAULT_INSTANCE(); // industry-standard crack (tm)
 
 // FIXME: actually respect frequency changes
 static void
@@ -82,29 +84,39 @@ static void
 changeNote(byte channel, byte note, byte velocity)
 {
     int freq = -1;
-    int duty = 0;
+    int duty = -1;
     const bool valid = midiToTesla(note, velocity,
         MAX_DUTYCYCLE_PROMILLE, MAX_PULSE_MICROS,
         &freq, &duty);
-
     digitalWrite(SOFTERROR_PIN, !valid);
-    updateTelsa(freq, duty);
+    if (!valid) { duty = 0; }
+    updateTelsa(freq, duty); // TEMP
+    Serial.println("set freq,duty");
+    Serial.println(freq); Serial.println(duty);
 }
 
 void
 setup()
 {
     setPwmFrequency(TESLA_PIN, 256); // 122 Hz
-    midiInterface.begin(1);
-    midiInterface.setHandleNoteOff(changeNote);
-    midiInterface.setHandleNoteOn(changeNote);
-    midiInterface.turnThruOff(); // so we can use Serial for debug
+    Serial.begin(SERIAL_RATE);
+    while (!Serial) {
+      // wait for computer connection
+    }
+    MIDI.begin(1);
+    Serial.begin(115200);
+    MIDI.setHandleNoteOff(changeNote);
+    MIDI.setHandleNoteOn(changeNote);
+    MIDI.turnThruOff(); // so we can use Serial for debug
     updateTelsa(100, 0); // default off
+    Serial.println("Setup complete");
 }
 
 void
 loop()
 {
     // everything else is callback-driven
-    midiInterface.read();
+    //Serial.write("main iter");
+    //delay(100);
+    MIDI.read();
 }
