@@ -1,5 +1,5 @@
 
-BOARD=uno328
+BOARD=nano328
 BAUD=115200
 PORT=/dev/ttyUSB0
 MIDIFILE=./midi/beethoven_fifth_op67.mid
