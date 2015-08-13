@@ -47,6 +47,7 @@ public:
     {
         timebaseUs = d;
         recalculate();
+//        counter = 0;
         return *this;
     }
 
@@ -54,12 +55,14 @@ public:
     {
         frequency = d;
         recalculate();
+//        counter = 0;
         return *this;
     }
     Self &setDutycycle(int d)
     {
         dutycyclePromille = d;
         recalculate();
+//        counter = 0;
         return *this;
     }
 
@@ -67,7 +70,7 @@ public:
     // Should be done in interrupt for guaranteed timings
     void addTicks(Ticks ticks=1) {
         counter += ticks;
-        printf("addTicks. counter=%d, onperiod=%d, period=%d\n", counter, onPeriod, period);
+//        printf("addTicks. counter=%d, onperiod=%d, period=%d\n", counter, onPeriod, period);
         if (counter > period) {
             counter = 0;
             changeState(true);
@@ -79,14 +82,14 @@ public:
 
     // Check current state
     bool isOn() const {
-        return (dutycyclePromille && counter < onPeriod);
+        return (dutycyclePromille && (counter < onPeriod));
     }
 
 private:
     void recalculate() {
-        printf("config. frequency=%d, dutycycle=%d, timebase=%d\n",
-            frequency, dutycyclePromille, timebaseUs);
-        period = 10e6/(frequency*timebaseUs);
+//        printf("config. frequency=%d, dutycycle=%d, timebase=%d\n",
+//            frequency, dutycyclePromille, timebaseUs);
+        period = 1e6/(frequency*timebaseUs);
         onPeriod = (period/1000)*dutycyclePromille;
     }
     void changeState(bool newState) {
